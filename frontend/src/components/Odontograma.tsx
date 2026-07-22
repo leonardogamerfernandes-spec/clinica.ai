@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { API_BASE_URL } from "@/lib/api";
 
 interface ToothTreatment {
   id?: string;
@@ -28,7 +29,7 @@ export default function Odontograma({ patientId, onTreatmentUpdated }: Odontogra
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
-      const res = await fetch(`http://localhost:3001/api/patients/${patientId}/teeth`, { headers });
+      const res = await fetch(`${API_BASE_URL}/api/patients/${patientId}/teeth`, { headers });
       if (res.ok) {
         const data = await res.json();
         setTreatments(data);
@@ -57,7 +58,7 @@ export default function Odontograma({ patientId, onTreatmentUpdated }: Odontogra
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      const res = await fetch(`http://localhost:3001/api/patients/${patientId}/teeth`, {
+      const res = await fetch(`${API_BASE_URL}/api/patients/${patientId}/teeth`, {
         method: "POST",
         headers,
         body: JSON.stringify({

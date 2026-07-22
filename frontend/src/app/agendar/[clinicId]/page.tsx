@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
+import { API_BASE_URL } from "@/lib/api";
 
 interface Doctor {
   id: string;
@@ -39,7 +40,7 @@ export default function PublicBookingPage() {
   useEffect(() => {
     const fetchClinicDetails = async () => {
       try {
-        const res = await fetch(`http://localhost:3001/api/public/clinic/${clinicId}`);
+        const res = await fetch(`${API_BASE_URL}/api/public/clinic/${clinicId}`);
         if (res.ok) {
           const data = await res.json();
           setClinicName(data.name);
@@ -66,7 +67,7 @@ export default function PublicBookingPage() {
     const scheduledAt = new Date(`${selectedDate}T${selectedTime}:00`);
 
     try {
-      const res = await fetch(`http://localhost:3001/api/public/clinic/${clinicId}/book`, {
+      const res = await fetch(`${API_BASE_URL}/api/public/clinic/${clinicId}/book`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -91,7 +91,7 @@ export default function AutomacoesPage() {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      const res = await fetch("${API_BASE_URL}/api/whatsapp/connect", { headers });
+      const res = await fetch(`${API_BASE_URL}/api/whatsapp/connect`, { headers });
       if (res.ok) {
         const data = await res.json();
         setConnectionData(data);
@@ -110,7 +110,7 @@ export default function AutomacoesPage() {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      const res = await fetch("${API_BASE_URL}/api/whatsapp/messages", { headers });
+      const res = await fetch(`${API_BASE_URL}/api/whatsapp/messages`, { headers });
       if (res.ok) {
         const data = await res.json();
         setMessages(data);
@@ -144,7 +144,7 @@ export default function AutomacoesPage() {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      const res = await fetch("${API_BASE_URL}/api/whatsapp/pair", {
+      const res = await fetch(`${API_BASE_URL}/api/whatsapp/pair`, {
         method: "POST",
         headers,
       });
@@ -171,7 +171,7 @@ export default function AutomacoesPage() {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      await fetch("${API_BASE_URL}/api/whatsapp/disconnect", {
+      await fetch(`${API_BASE_URL}/api/whatsapp/disconnect`, {
         method: "POST",
         headers,
       });
@@ -223,7 +223,7 @@ export default function AutomacoesPage() {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      const res = await fetch("${API_BASE_URL}/api/whatsapp/simulate-incoming", {
+      const res = await fetch(`${API_BASE_URL}/api/whatsapp/simulate-incoming`, {
         method: "POST",
         headers,
         body: JSON.stringify(postData)
@@ -280,7 +280,7 @@ export default function AutomacoesPage() {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      const res = await fetch("http://localhost:3001/api/marketing/campaigns/draft", {
+      const res = await fetch(`${API_BASE_URL}/api/marketing/campaigns/draft`, {
         method: "POST",
         headers,
         body: JSON.stringify({ prompt: campaignPrompt }),
@@ -311,7 +311,7 @@ export default function AutomacoesPage() {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      const res = await fetch("http://localhost:3001/api/marketing/campaigns/send", {
+      const res = await fetch(`${API_BASE_URL}/api/marketing/campaigns/send`, {
         method: "POST",
         headers,
         body: JSON.stringify({

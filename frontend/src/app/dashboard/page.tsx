@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { API_BASE_URL } from "@/lib/api";
 
 interface DBAppointment {
   id: string;
@@ -38,7 +39,7 @@ export default function DashboardHome() {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      const res = await fetch("http://localhost:3001/api/billing/checkout", {
+      const res = await fetch(`${API_BASE_URL}/api/billing/checkout`, {
         method: "POST",
         headers
       });
@@ -71,7 +72,7 @@ export default function DashboardHome() {
           headers["Authorization"] = `Bearer ${token}`;
         }
         
-        const res = await fetch("http://localhost:3001/api/appointments", { headers });
+        const res = await fetch(`${API_BASE_URL}/api/appointments`, { headers });
         if (res.ok) {
           const data = await res.json();
           if (data && data.length > 0) {
@@ -90,7 +91,7 @@ export default function DashboardHome() {
         if (token) {
           headers["Authorization"] = `Bearer ${token}`;
         }
-        const statsRes = await fetch("http://localhost:3001/api/analytics/dashboard", { headers });
+        const statsRes = await fetch(`${API_BASE_URL}/api/analytics/dashboard`, { headers });
         if (statsRes.ok) {
           const stats = await statsRes.json();
           setMsgsWeek(stats.msgsWeek);
