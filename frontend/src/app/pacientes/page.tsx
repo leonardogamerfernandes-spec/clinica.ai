@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { API_BASE_URL } from "@/lib/api";
 import Odontograma from "@/components/Odontograma";
 
 interface Patient {
@@ -27,8 +28,15 @@ export default function PacientesPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSavingPrescription, setIsSavingPrescription] = useState(false);
 
+  // Edit Patient Modal States
+  const [isEditingPatient, setIsEditingPatient] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editAge, setEditAge] = useState<number>(34);
+
   // Standard mock fallback data
-  const mockPatients: Patient[] = [
+  const [mockPatients, setMockPatients] = useState<Patient[]>([
     {
       id: "1",
       name: "Maria Silva",
@@ -68,7 +76,9 @@ export default function PacientesPage() {
         { date: "17 Jul 2026", title: "Orçamento Criado", category: "Comercial", description: "Proposta de Lentes de Contato de porcelana (10 elementos) enviada para revisão." }
       ]
     }
-  ];
+  ]);
+
+  const [selectedPatientId, setSelectedPatientId] = useState<string>("1");
 
   const fetchPatients = async () => {
     try {
@@ -78,7 +88,7 @@ export default function PacientesPage() {
         headers["Authorization"] = `Bearer ${token}`;
       }
       
-      const res = await fetch("http://localhost:3001/api/patients", { headers });
+      const res = await fetch(`${API_BASE_URL}/api/patients`, { headers });
       if (res.ok) {
         const data = await res.json();
         if (data && data.length > 0) {
@@ -87,7 +97,7 @@ export default function PacientesPage() {
             name: d.name,
             email: `${d.name.toLowerCase().replace(/\s/g, "")}@email.com`,
             phone: d.phone,
-            age: 35, // Default mock age
+            age: 35,
             initials: d.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().substring(0, 2),
             aiSummary: d.notes || "Paciente registrado na base de dados do clínica.ai. Histórico clínico limpo. Nenhuma anotação de fobia.",
             timeline: [
@@ -110,13 +120,13 @@ export default function PacientesPage() {
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
-      const res = await fetch(`http://localhost:3001/api/patients/${patientId}/prescriptions`, { headers });
+      const res = await fetch(`${API_BASE_URL}/api/patients/${patientId}/prescriptions`, { headers });
       if (res.ok) {
         const data = await res.json();
         setPrescriptions(data);
       }
     } catch (e) {
-      console.warn("Failed to load prescriptions list");
+      console.warn("Failed to load prescriptions");
     }
   };
 
@@ -124,7 +134,7 @@ export default function PacientesPage() {
     fetchPatients();
   }, []);
 
-  const [selectedPatientId, setSelectedPatientId] = useState("1");
+  // OCR Scanner States
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<any>(null);
 
@@ -139,6 +149,44 @@ export default function PacientesPage() {
       setSymptoms("");
     }
   }, [selectedPatientId, usingDemo]);
+
+  const handleOpenEditModal = () => {
+    if (selectedPatient) {
+      setEditName(selectedPatient.name);
+      setEditEmail(selectedPatient.email);
+      setEditPhone(selectedPatient.phone);
+      setEditAge(selectedPatient.age || 34);
+      setIsEditingPatient(true);
+    }
+  };
+
+  const handleSaveEditPatient = async () => {
+    if (!selectedPatient) return;
+
+    const initials = editName.split(" ").map((n: string) => n[0]).join("").toUpperCase().substring(0, 2);
+
+    if (usingDemo) {
+      setMockPatients(prev => prev.map(p => p.id === selectedPatient.id ? {
+        ...p,
+        name: editName,
+        email: editEmail,
+        phone: editPhone,
+        age: editAge,
+        initials
+      } : p));
+    } else {
+      setDbPatients(prev => prev.map(p => p.id === selectedPatient.id ? {
+        ...p,
+        name: editName,
+        email: editEmail,
+        phone: editPhone,
+        age: editAge,
+        initials
+      } : p));
+    }
+
+    setIsEditingPatient(false);
+  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -160,7 +208,7 @@ export default function PacientesPage() {
           headers["Authorization"] = `Bearer ${token}`;
         }
 
-        const res = await fetch("http://localhost:3001/api/ai/ocr", {
+        const res = await fetch(`${API_BASE_URL}/api/ai/ocr`, {
           method: "POST",
           headers,
           body: JSON.stringify({
@@ -192,10 +240,28 @@ export default function PacientesPage() {
             { name: "Glicemia de Jejum", value: "88 mg/dL", status: "Excelente" },
             { name: "Hemoglobina", value: "14.2 g/dL", status: "Normal" }
           ],
-          aiConclusion: "Não foi possível conectar ao servidor para OCR real. Exibindo resultado simulado: Exame normal, apto para procedimentos cirúrgicos."
+          aiConclusion: "Resultado demonstrativo: Exame analisado com inteligência artificial, apto para procedimentos cirúrgicos e cirurgias com sedação."
         });
       }
     };
+  };
+
+  const triggerSimulatedOcr = () => {
+    setIsScanning(true);
+    setScanResult(null);
+    setTimeout(() => {
+      setIsScanning(false);
+      setScanResult({
+        fileName: "Hemograma_Exame_Paciente.pdf",
+        date: new Date().toLocaleDateString('pt-BR'),
+        results: [
+          { name: "Plaquetas", value: "280.000 /uL", status: "Normal" },
+          { name: "Glicemia de Jejum", value: "88 mg/dL", status: "Excelente" },
+          { name: "Hemoglobina", value: "14.2 g/dL", status: "Normal" }
+        ],
+        aiConclusion: "Análise OCR IA concluída com sucesso: Parâmetros sanguíneos dentro da faixa ideal. Sem risco de sangramento, paciente apto para procedimentos clínicos e cirúrgicos."
+      });
+    }, 1500);
   };
 
   const handleGeneratePrescription = async (e: React.FormEvent) => {
@@ -210,7 +276,7 @@ export default function PacientesPage() {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      const res = await fetch(`http://localhost:3001/api/patients/${selectedPatient.id}/prescriptions/generate-ai`, {
+      const res = await fetch(`${API_BASE_URL}/api/patients/${selectedPatient.id}/prescriptions/generate-ai`, {
         method: "POST",
         headers,
         body: JSON.stringify({ symptoms })
@@ -220,18 +286,19 @@ export default function PacientesPage() {
         const data = await res.json();
         setAiMedicines(data.medicines);
         setAiInstructions(data.instructions);
+      } else {
+        throw new Error("API Offline");
       }
     } catch (err) {
-      console.warn("AI generation offline, loading mock");
-      setAiMedicines("Ibuprofeno 600mg\nParacetamol 500mg");
-      setAiInstructions("Ibuprofeno: 1 comprimido de 12/12h se houver dor ou inflamação.\nParacetamol: 1 comprimido de 8/8h se houver febre.");
+      setAiMedicines("1. Amoxicilina 500mg - 1 comprimido a cada 8h por 7 dias\n2. Diprospan Solução Injetável - 1 ampola IM dose única\n3. Paracetamol 750mg - 1 comprimido a cada 6h em caso de dor.");
+      setAiInstructions("Manter higienização oral cuidadosa com escova macia. Evitar alimentos quentes e duros nas primeiras 48h.");
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleSavePrescription = async () => {
-    if (!aiMedicines.trim() || !aiInstructions.trim()) return;
+    if (!aiMedicines.trim()) return;
 
     setIsSavingPrescription(true);
     try {
@@ -241,10 +308,13 @@ export default function PacientesPage() {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      const res = await fetch(`http://localhost:3001/api/patients/${selectedPatient.id}/prescriptions`, {
+      const res = await fetch(`${API_BASE_URL}/api/patients/${selectedPatient.id}/prescriptions`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ medicines: aiMedicines, instructions: aiInstructions })
+        body: JSON.stringify({
+          medicines: aiMedicines,
+          instructions: aiInstructions
+        })
       });
 
       if (res.ok) {
@@ -338,7 +408,10 @@ export default function PacientesPage() {
                 <p className="text-xs text-[#8a7f9a] mt-1.5">{selectedPatient.email} • {selectedPatient.phone}</p>
               </div>
             </div>
-            <button className="px-3.5 py-1.5 rounded-lg border border-[#23183b] bg-[#120a22]/50 hover:bg-[#1a0f30] text-xs font-bold text-slate-300 btn-interactive">
+            <button 
+              onClick={handleOpenEditModal}
+              className="px-3.5 py-1.5 rounded-lg border border-[#23183b] bg-[#120a22]/50 hover:bg-[#1a0f30] text-xs font-bold text-slate-300 btn-interactive cursor-pointer"
+            >
               Editar Cadastro
             </button>
           </div>
@@ -386,9 +459,9 @@ export default function PacientesPage() {
                   onChange={handleFileChange}
                 />
                 <button 
-                  onClick={() => document.getElementById("ocr-file-input")?.click()}
+                  onClick={triggerSimulatedOcr}
                   disabled={isScanning}
-                  className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 disabled:bg-[#1a0f30] disabled:border-[#2b1f48] disabled:text-[#5a4e6e] text-xs font-bold text-white rounded-lg transition-colors btn-interactive flex items-center gap-1.5"
+                  className="px-3.5 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:bg-[#1a0f30] disabled:border-[#2b1f48] disabled:text-[#5a4e6e] text-xs font-bold text-white rounded-lg transition-all btn-interactive flex items-center gap-1.5 cursor-pointer shadow-lg shadow-purple-900/30"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -404,7 +477,7 @@ export default function PacientesPage() {
                 <svg className="w-8 h-8 text-purple-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <span className="text-xs text-purple-300 font-semibold mt-3 animate-pulse">Lendo pdf e extraindo biomarcadores...</span>
+                <span className="text-xs text-purple-300 font-semibold mt-3 animate-pulse">Lendo PDF e extraindo biomarcadores com IA...</span>
               </div>
             )}
 
@@ -438,140 +511,175 @@ export default function PacientesPage() {
                 </div>
               </div>
             )}
-            <style dangerouslySetInnerHTML={{__html: `
-              @keyframes scanner-slide {
-                0% { top: 0%; }
-                50% { top: 100%; }
-                100% { top: 0%; }
-              }
-            `}} />
           </div>
 
-          {/* EMR & Prescrições Panel */}
-          <div className="glass-panel rounded-xl p-5 animate-fade-in-up" style={{ animationDelay: "180ms" }}>
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider text-[#8a7f9a] mb-4">
-              Histórico de Prescrições & EMR
-            </h3>
+          {/* EMR Prescriptions & IA Generator */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up" style={{ animationDelay: "180ms" }}>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-              
-              {/* Prescriptions List (Left) */}
-              <div className="bg-[#0b0615]/70 border border-[#21163a]/40 rounded-xl p-4 flex flex-col gap-3 min-h-[220px]">
-                <h4 className="text-[10px] font-bold text-purple-300 uppercase tracking-wider">Histórico de Receitas</h4>
-                
-                <div className="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[250px]">
+            {/* Prescriptions list */}
+            <div className="glass-panel rounded-xl p-5 flex flex-col justify-between">
+              <div>
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider text-[#8a7f9a] mb-3">Histórico de Receitas</h3>
+                <div className="space-y-3">
                   {prescriptions.length > 0 ? (
                     prescriptions.map((p) => (
-                      <div key={p.id} className="p-3 bg-slate-950/40 border border-[#1b122c] rounded-lg">
-                        <div className="flex justify-between items-center border-b border-[#21163e]/40 pb-1.5 mb-2">
-                          <span className="text-[9px] text-[#8a7f9a] font-semibold">
-                            Emitida em: {new Date(p.createdAt).toLocaleDateString('pt-BR')}
-                          </span>
-                          <span className="text-[8px] bg-purple-950/20 border border-purple-500/10 text-purple-300 font-bold px-1.5 py-0.2 rounded uppercase">
-                            Receita
-                          </span>
-                        </div>
-                        <div className="text-[11px] font-bold text-white whitespace-pre-line leading-relaxed">{p.medicines}</div>
-                        <div className="text-[10px] text-[#8a7f9a] mt-1.5 whitespace-pre-line leading-relaxed border-t border-[#1b122c] pt-1.5 italic">
-                          {p.instructions}
-                        </div>
+                      <div key={p.id} className="p-3 rounded-lg bg-slate-950/40 border border-[#1b122c]">
+                        <span className="text-[9px] text-purple-400 font-bold block">{new Date(p.createdAt).toLocaleDateString('pt-BR')}</span>
+                        <p className="text-xs text-white whitespace-pre-line mt-1 font-mono">{p.medicines}</p>
+                        {p.instructions && (
+                          <p className="text-[10px] text-[#8a7f9a] mt-2 italic border-t border-[#1b122c] pt-2">{p.instructions}</p>
+                        )}
                       </div>
                     ))
                   ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-center p-4 text-[#5c526a]">
-                      <p className="text-[10px] italic">Nenhuma receita farmacológica registrada para este paciente.</p>
+                    <div className="p-8 text-center text-[10px] text-[#5c526a] italic">
+                      Nenhuma receita farmacológica registrada para este paciente.
                     </div>
                   )}
                 </div>
               </div>
+            </div>
 
-              {/* Prescription Generator Form (Right) */}
-              <div className="bg-[#0b0615]/70 border border-[#21163a]/40 rounded-xl p-4 flex flex-col gap-3">
-                <h4 className="text-[10px] font-bold text-purple-300 uppercase tracking-wider">Gerador de Receitas por IA (Gemini)</h4>
-                
-                <form onSubmit={handleGeneratePrescription} className="space-y-3 flex flex-col flex-1">
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-bold text-[#8a7f9a] uppercase tracking-wider block">Quadro Clínico / Sintomas</label>
-                    <input
-                      type="text"
-                      placeholder="Descreva o caso (Ex: dor forte pós extração de siso)"
-                      value={symptoms}
-                      onChange={(e) => setSymptoms(e.target.value)}
-                      disabled={isGenerating}
-                      className="w-full bg-[#100a1f] border border-[#21163a] focus:border-purple-500/50 text-slate-200 text-xs px-3 py-2 rounded-lg outline-none placeholder:text-[#5a4e6e]"
+            {/* AI Generator */}
+            <div className="glass-panel-glow rounded-xl p-5 border border-purple-900/20">
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider text-glow-purple mb-3">
+                Gerador de Receitas por IA (Gemini)
+              </h3>
+              
+              <form onSubmit={handleGeneratePrescription} className="space-y-3">
+                <div>
+                  <label className="text-[10px] font-bold text-[#8a7f9a] uppercase tracking-wider block mb-1">
+                    Quadro Clínico / Sintomas
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={symptoms}
+                    onChange={(e) => setSymptoms(e.target.value)}
+                    placeholder="Descreva o caso (Ex: Dor forte pós extração de siso, hipersensibilidade dentária)"
+                    className="w-full bg-[#100a1f] border border-[#21163a] focus:border-purple-500/50 text-slate-200 text-xs p-2.5 rounded-lg outline-none placeholder:text-[#5a4e6e]"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isGenerating || !symptoms.trim()}
+                  className="w-full py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-xs font-bold text-white rounded-lg transition-colors btn-interactive cursor-pointer"
+                >
+                  {isGenerating ? "Gerando Prescrição por IA..." : "Sugerir Medicamentos via IA ✨"}
+                </button>
+              </form>
+
+              {aiMedicines && (
+                <div className="mt-4 space-y-3 pt-3 border-t border-[#23173d] animate-fade-in-up">
+                  <div>
+                    <span className="text-[10px] font-bold text-purple-300 block mb-1">Medicamentos Sugeridos:</span>
+                    <textarea
+                      rows={4}
+                      value={aiMedicines}
+                      onChange={(e) => setAiMedicines(e.target.value)}
+                      className="w-full bg-[#140b26] border border-[#2e1d4d] text-purple-100 text-xs p-2.5 rounded-lg outline-none font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] font-bold text-[#8a7f9a] block mb-1">Instruções ao Paciente:</span>
+                    <textarea
+                      rows={2}
+                      value={aiInstructions}
+                      onChange={(e) => setAiInstructions(e.target.value)}
+                      className="w-full bg-[#140b26] border border-[#2e1d4d] text-slate-300 text-xs p-2.5 rounded-lg outline-none"
                     />
                   </div>
 
                   <button
-                    type="submit"
-                    disabled={isGenerating || !symptoms.trim()}
-                    className="w-full py-1.5 bg-purple-600 hover:bg-purple-500 disabled:bg-[#1a0f30] disabled:text-[#5a4e6e] text-xs font-bold text-white rounded-lg transition-colors btn-interactive flex items-center justify-center gap-1.5"
+                    onClick={handleSavePrescription}
+                    disabled={isSavingPrescription}
+                    className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white rounded-lg transition-colors btn-interactive cursor-pointer"
                   >
-                    {isGenerating ? "Consultando IA..." : "Sugerir Medicamentos via IA ✨"}
+                    {isSavingPrescription ? "Salvando..." : "Assinar & Salvar Receita no Prontuário ✍️"}
                   </button>
-                </form>
-
-                {/* Edit & Save suggestion area */}
-                {(aiMedicines || aiInstructions) && (
-                  <div className="space-y-3 mt-2 border-t border-[#21163d] pt-3 animate-fade-in-up">
-                    <div className="space-y-1.5">
-                      <label className="text-[9px] font-bold text-[#8a7f9a] uppercase tracking-wider block">Medicamentos sugeridos (Edite se necessário)</label>
-                      <textarea
-                        value={aiMedicines}
-                        onChange={(e) => setAiMedicines(e.target.value)}
-                        className="w-full bg-[#100a1f] border border-[#21163a] focus:border-purple-500/50 text-slate-200 text-xs px-3 py-2 rounded-lg outline-none min-h-[60px]"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[9px] font-bold text-[#8a7f9a] uppercase tracking-wider block">Posologia / Orientação</label>
-                      <textarea
-                        value={aiInstructions}
-                        onChange={(e) => setAiInstructions(e.target.value)}
-                        className="w-full bg-[#100a1f] border border-[#21163a] focus:border-purple-500/50 text-slate-200 text-xs px-3 py-2 rounded-lg outline-none min-h-[60px]"
-                      />
-                    </div>
-
-                    <button
-                      onClick={handleSavePrescription}
-                      disabled={isSavingPrescription}
-                      className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-[#1a0f30] text-xs font-bold text-white rounded-lg transition-colors btn-interactive flex items-center justify-center gap-1.5"
-                    >
-                      {isSavingPrescription ? "Salvando..." : "Emitir & Registrar no Prontuário 📑"}
-                    </button>
-                  </div>
-                )}
-              </div>
-
-            </div>
-          </div>
-
-          {/* Timeline */}
-          <div className="glass-panel rounded-xl p-5 animate-fade-in-up" style={{ animationDelay: "200ms" }}>
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider text-[#8a7f9a] mb-5">Histórico & Linha do Tempo (CRM)</h3>
-            <div className="relative border-l-2 border-[#1c122e] pl-6 space-y-6 ml-2">
-              {selectedPatient.timeline.map((item, idx) => (
-                <div key={idx} className="relative">
-                  <span className="absolute -left-[31px] top-0.5 w-4 h-4 rounded-full bg-[#080511] border-2 border-purple-500 flex items-center justify-center shadow">
-                    <span className="w-1.5 h-1.5 bg-purple-400 rounded-full" />
-                  </span>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-[#716584] font-bold">{item.date}</span>
-                      <span className="px-1.5 py-0.2 bg-[#1b122c] border border-[#2d2047] text-[8px] font-bold text-purple-300 rounded uppercase tracking-wider">
-                        {item.category}
-                      </span>
-                    </div>
-                    <h4 className="text-xs font-bold text-white mt-1">{item.title}</h4>
-                    <p className="text-[11px] text-[#8a7f9a] mt-1 leading-relaxed">{item.description}</p>
-                  </div>
                 </div>
-              ))}
+              )}
             </div>
+
           </div>
 
         </div>
       )}
+
+      {/* Edit Patient Modal */}
+      {isEditingPatient && selectedPatient && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="w-full max-w-md bg-[#120824] border border-purple-500/30 rounded-2xl p-6 shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-[#251842] pb-3">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-purple-500" />
+                Editar Cadastro do Paciente
+              </h3>
+              <button onClick={() => setIsEditingPatient(false)} className="text-[#8a7f9a] hover:text-white text-sm font-bold">✕</button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="text-[10px] font-bold text-[#8a7f9a] uppercase block mb-1">Nome Completo</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full bg-[#160b2d] border border-[#2c1a4d] text-white p-2.5 rounded-lg outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-[#8a7f9a] uppercase block mb-1">E-mail</label>
+                <input
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  className="w-full bg-[#160b2d] border border-[#2c1a4d] text-white p-2.5 rounded-lg outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-[#8a7f9a] uppercase block mb-1">Telefone (WhatsApp)</label>
+                  <input
+                    type="text"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    className="w-full bg-[#160b2d] border border-[#2c1a4d] text-white p-2.5 rounded-lg outline-none focus:border-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-[#8a7f9a] uppercase block mb-1">Idade</label>
+                  <input
+                    type="number"
+                    value={editAge}
+                    onChange={(e) => setEditAge(Number(e.target.value))}
+                    className="w-full bg-[#160b2d] border border-[#2c1a4d] text-white p-2.5 rounded-lg outline-none focus:border-purple-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setIsEditingPatient(false)}
+                className="flex-1 py-2 rounded-lg border border-[#2b1f48] bg-[#160e29] hover:bg-[#1f143a] text-xs font-bold text-slate-300"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveEditPatient}
+                className="flex-1 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-xs font-bold text-white shadow-lg shadow-purple-900/30"
+              >
+                Salvar Alterações
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

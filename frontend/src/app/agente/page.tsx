@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { API_BASE_URL } from "@/lib/api";
 
 interface Message {
   id: string;
@@ -64,7 +65,7 @@ export default function AgenteIAPage() {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      const res = await fetch("http://localhost:3001/api/ai/chat", {
+      const res = await fetch(`${API_BASE_URL}/api/ai/chat`, {
         method: "POST",
         headers,
         body: JSON.stringify({ prompt: text })

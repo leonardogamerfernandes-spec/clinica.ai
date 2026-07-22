@@ -3,6 +3,8 @@
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 
+import { API_BASE_URL } from "../lib/api";
+
 export function Topbar() {
   const pathname = usePathname();
   const [isOnline, setIsOnline] = useState(false);
@@ -42,7 +44,7 @@ export function Topbar() {
           headers["Authorization"] = `Bearer ${token}`;
         }
         
-        const res = await fetch("http://localhost:3001/api/patients", { 
+        const res = await fetch(`${API_BASE_URL}/api/patients`, { 
           method: "GET", 
           headers 
         });

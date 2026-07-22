@@ -238,7 +238,10 @@ export function Sidebar() {
           </div>
           
           <div className="mt-3 relative z-10">
-            <button className="w-full py-1.5 px-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-[11px] font-bold text-white transition-all duration-150 ease-out-strong active:scale-[0.96] shadow-md shadow-purple-900/20 hover:shadow-purple-800/40">
+            <button 
+              onClick={() => router.push('/configuracoes')}
+              className="w-full py-1.5 px-3 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-[11px] font-bold text-white transition-all duration-150 ease-out-strong active:scale-[0.96] shadow-md shadow-purple-900/20 hover:shadow-purple-800/40 cursor-pointer"
+            >
               Ver Planos
             </button>
           </div>

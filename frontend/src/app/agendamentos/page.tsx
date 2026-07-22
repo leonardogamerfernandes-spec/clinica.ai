@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { API_BASE_URL } from "@/lib/api";
 
 interface Appointment {
   id: string;
@@ -49,7 +50,7 @@ export default function AgendamentosPage() {
         headers["Authorization"] = `Bearer ${token}`;
       }
       
-      const res = await fetch("http://localhost:3001/api/appointments", { headers });
+      const res = await fetch("${API_BASE_URL}/api/appointments", { headers });
       if (res.ok) {
         const data = await res.json();
         if (data && data.length > 0) {
@@ -83,7 +84,7 @@ export default function AgendamentosPage() {
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
-      const res = await fetch("http://localhost:3001/api/waitlist", { headers });
+      const res = await fetch("${API_BASE_URL}/api/waitlist", { headers });
       if (res.ok) {
         const data = await res.json();
         setWaitlist(data);
@@ -100,7 +101,7 @@ export default function AgendamentosPage() {
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
-      const res = await fetch("http://localhost:3001/api/procedures", { headers });
+      const res = await fetch("${API_BASE_URL}/api/procedures", { headers });
       if (res.ok) {
         setStaffList(prev => [...prev]);
       }
@@ -119,7 +120,7 @@ export default function AgendamentosPage() {
           headers["Authorization"] = `Bearer ${token}`;
         }
         
-        const staffRes = await fetch("http://localhost:3001/api/settings/staff", { headers });
+        const staffRes = await fetch("${API_BASE_URL}/api/settings/staff", { headers });
         if (staffRes.ok) {
           const data = await staffRes.json();
           setStaffList(data);
@@ -151,7 +152,7 @@ export default function AgendamentosPage() {
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
-      const res = await fetch("http://localhost:3001/api/appointments/trigger-reminders", {
+      const res = await fetch("${API_BASE_URL}/api/appointments/trigger-reminders", {
         method: "POST",
         headers,
       });
@@ -193,14 +194,14 @@ export default function AgendamentosPage() {
         headers["Authorization"] = `Bearer ${token}`;
       }
       
-      const res = await fetch("http://localhost:3001/api/appointments", {
+      const res = await fetch("${API_BASE_URL}/api/appointments", {
         method: "POST",
         headers,
         body: JSON.stringify(postData)
       });
       if (res.ok) {
         await fetchAppointments();
-        await fetch(`http://localhost:3001/api/waitlist/${patientToInsert.id}`, {
+        await fetch(`${API_BASE_URL}/api/waitlist/${patientToInsert.id}`, {
           method: "DELETE",
           headers
         });
@@ -235,7 +236,7 @@ export default function AgendamentosPage() {
           headers["Authorization"] = `Bearer ${token}`;
         }
         
-        const res = await fetch(`http://localhost:3001/api/appointments/${appt.id}/status`, {
+        const res = await fetch(`${API_BASE_URL}/api/appointments/${appt.id}/status`, {
           method: "PATCH",
           headers,
           body: JSON.stringify({ status: "CONFIRMED" })

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { API_BASE_URL } from "@/lib/api";
 
 interface EstoqueItem {
   name: string;
@@ -76,7 +77,7 @@ export default function ConfiguraçõesPage() {
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
-      const res = await fetch("http://localhost:3001/api/billing/status", { headers });
+      const res = await fetch("${API_BASE_URL}/api/billing/status", { headers });
       if (res.ok) {
         const data = await res.json();
         setSubInfo(data);
@@ -93,7 +94,7 @@ export default function ConfiguraçõesPage() {
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
-      const res = await fetch("http://localhost:3001/api/settings/inventory", { headers });
+      const res = await fetch("${API_BASE_URL}/api/settings/inventory", { headers });
       if (res.ok) {
         const data = await res.json();
         setEstoqueItems(data);
@@ -110,7 +111,7 @@ export default function ConfiguraçõesPage() {
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
-      const res = await fetch("http://localhost:3001/api/settings/staff", { headers });
+      const res = await fetch("${API_BASE_URL}/api/settings/staff", { headers });
       if (res.ok) {
         const data = await res.json();
         setRhStaff(data);
@@ -127,7 +128,7 @@ export default function ConfiguraçõesPage() {
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
-      const res = await fetch("http://localhost:3001/api/settings/branches", { headers });
+      const res = await fetch("${API_BASE_URL}/api/settings/branches", { headers });
       if (res.ok) {
         const data = await res.json();
         setUnitsData(data);
@@ -153,7 +154,7 @@ export default function ConfiguraçõesPage() {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      const res = await fetch("http://localhost:3001/api/billing/checkout", {
+      const res = await fetch("${API_BASE_URL}/api/billing/checkout", {
         method: "POST",
         headers,
         body: JSON.stringify({ planType, interval: "annual" }),
@@ -189,7 +190,7 @@ export default function ConfiguraçõesPage() {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      const res = await fetch("http://localhost:3001/api/settings/inventory", {
+      const res = await fetch("${API_BASE_URL}/api/settings/inventory", {
         method: "POST",
         headers,
         body: JSON.stringify(newItem)
