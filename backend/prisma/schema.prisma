@@ -1,0 +1,211 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Tenant {
+  id                 String             @id @default(uuid())
+  name               String             // Nome da Clínica
+  cnpj               String?
+  planType           String             @default("FREE")
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  
+  stripeCustomerId   String?
+  subscriptionStatus String             @default("FREE") // FREE, ACTIVE, TRIAL, CANCELED
+
+  users              User[]
+  patients           Patient[]
+  appointments       Appointment[]
+  botConfig          BotConfig?
+  whatsappMessages   WhatsAppMessage[]
+  inventoryItems     InventoryItem[]
+  staffPerformances  StaffPerformance[]
+  branchUnits        BranchUnit[]
+  waitlistEntries    WaitlistEntry[]
+  procedures         Procedure[]
+  prescriptions      Prescription[]
+  toothTreatments    ToothTreatment[]
+  marketingCampaigns MarketingCampaign[]
+}
+
+model User {
+  id           String   @id @default(uuid())
+  tenantId     String
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("RECEPTIONIST") // ADMIN, DOCTOR, RECEPTIONIST
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  doctorAppointments Appointment[] @relation("DoctorAppointments")
+}
+
+model Patient {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  phone       String   // WhatsApp
+  notes       String?  // Histórico clínico resumido ou notas da secretária
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  appointments  Appointment[]
+  whatsappMessages WhatsAppMessage[]
+  prescriptions Prescription[]
+  toothTreatments ToothTreatment[]
+}
+
+model Appointment {
+  id          String   @id @default(uuid())
+  tenantId    String
+  patientId   String
+  doctorId    String?
+  procedureId String?
+  scheduledAt DateTime // Data e hora da consulta
+  status      String   @default("PENDING") // PENDING, CONFIRMED, CANCELED, COMPLETED
+  procedure   String?  // Procedimento desejado (Limpeza, Avaliação, etc)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient     Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor      User?      @relation("DoctorAppointments", fields: [doctorId], references: [id], onDelete: SetNull)
+  procedureRelation Procedure? @relation(fields: [procedureId], references: [id], onDelete: SetNull)
+}
+
+model BotConfig {
+  id            String   @id @default(uuid())
+  tenantId      String   @unique
+  systemPrompt  String   @db.Text // Prompt de sistema base para a IA
+  knowledgeBase String?  @db.Text // Texto/RAG com FAQ, preços e convênios da clínica
+  autoSchedule  Boolean  @default(true) // Permite que a IA marque no banco diretamente
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model WhatsAppMessage {
+  id        String   @id @default(uuid())
+  tenantId  String
+  patientId String
+  direction String   // OUTGOING or INCOMING
+  content   String
+  createdAt DateTime @default(now())
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model InventoryItem {
+  id        String   @id @default(uuid())
+  tenantId  String
+  code      String
+  name      String
+  qty       String
+  expiry    String
+  supplier  String
+  status    String   // ok, low, critical
+  createdAt DateTime @default(now())
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model StaffPerformance {
+  id                String   @id @default(uuid())
+  tenantId          String
+  name              String
+  role              String
+  appointmentsCount Int      @default(0)
+  efficiency        String   // Ex: "96%"
+  billing           String   // Ex: "R$ 56.000,00"
+  commission        String   // Ex: "R$ 16.800,00"
+  createdAt         DateTime @default(now())
+
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model BranchUnit {
+  id             String   @id @default(uuid())
+  tenantId       String
+  name           String
+  billing        String
+  patientsCount  Int      @default(0)
+  occupationRate String
+  noShows        String
+  createdAt      DateTime @default(now())
+
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model WaitlistEntry {
+  id            String   @id @default(uuid())
+  tenantId      String
+  patientName   String
+  phone         String
+  preferredTime String
+  reason        String
+  createdAt     DateTime @default(now())
+
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model Procedure {
+  id           String        @id @default(uuid())
+  tenantId     String
+  name         String
+  price        Float         @default(0.0)
+  duration     Int           @default(30) // em minutos
+  createdAt    DateTime      @default(now())
+  appointments Appointment[]
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model Prescription {
+  id           String   @id @default(uuid())
+  tenantId     String
+  patientId    String
+  medicines    String   @db.Text
+  instructions String   @db.Text
+  createdAt    DateTime @default(now())
+
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient      Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model ToothTreatment {
+  id          String   @id @default(uuid())
+  tenantId    String
+  patientId   String
+  toothNumber Int      // numeração dental ISO (11 a 48)
+  condition   String   // CARIES, CANAL, IMPLANT, CROWN, HEALTHY
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model MarketingCampaign {
+  id           String   @id @default(uuid())
+  tenantId     String
+  name         String
+  prompt       String   @db.Text
+  audienceSize Int      @default(0)
+  status       String   @default("SENT") // SENT, DRAFT
+  createdAt    DateTime @default(now())
+
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
